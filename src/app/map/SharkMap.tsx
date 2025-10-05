@@ -114,22 +114,22 @@ export default function SharkMap() {
   return (
     <div className="h-screen w-full">
       {/* Slider */}
-        <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-xl shadow">
-          <label className="block mb-2 font-semibold">Semana: {weekOffset}</label>
+        <div className="absolute bottom-4 right-4 z-[1000] bg-white p-4 rounded-xl shadow">
+          <label className="block mb-2 font-semibold text-black">Week: {weekOffset}</label>
           <input
             type="range"
-            min={-4}
-            max={4}
+            min={0}
+            max={8}
             value={weekOffset}
             onChange={(e) => setWeekOffset(Number(e.target.value))}
             className="w-48"
           />
           <div className="text-sm text-gray-600 mt-2">
             {weekOffset < 0
-              ? `Mostrando semana ${Math.abs(weekOffset)} en el pasado`
+              ? `Week numer #${Math.abs(weekOffset)} in past`
               : weekOffset > 0
-              ? `Predicción para semana ${weekOffset}`
-              : "Ubicación actual"}
+              ? `Prediction week: #${weekOffset}`
+              : "Actual week"}
           </div>
       </div>
       <MapContainer
