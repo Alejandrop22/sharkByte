@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import Adopt from "@/app/map/Adopt"
+import Adopt from "./Adopt";
 
 const sharkIcon = new L.Icon({
   iconUrl: "/shark.svg",
@@ -28,22 +28,22 @@ type SharkPosition = {
 export default function SharkMap() {
   const [data, setData] = useState<Tiburon[]>([]);
   const [sharks, setSharks] = useState<Record<number, SharkPosition>>({});
-  const animationRef = useRef<number | null>(null);
-
   const [sharkNames, setSharkNames] = useState<Record<number, string>>({});
+  const animationRef = useRef<number | null>(null);
 
   const handleNameSet = (id: number, name: string) => {
     setSharkNames((prev) => ({ ...prev, [id]: name }));
   };
 
-
+  // Fetch desde la API
   useEffect(() => {
-    fetch("/tibu.json")
-      .then((res) => res.json())
-      .then((json: Tiburon[]) => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch("https://tu-api.com/tiburones"); // <- tu API aquí
+        if (!res.ok) throw new Error("Error al obtener los datos");
+        const json: Tiburon[] = await res.json();
         setData(json);
 
-        // Inicializar posiciones solo si hay datos
         const uniqueIDs = Array.from(new Set(json.map((t) => t.ID)));
         const initialPositions: Record<number, SharkPosition> = {};
         uniqueIDs.forEach((id) => {
@@ -53,11 +53,21 @@ export default function SharkMap() {
           }
         });
         setSharks(initialPositions);
-      });
+      } catch (err) {
+        console.error("Error cargando tiburones:", err);
+      }
+    };
+
+    fetchData();
+
+    // Actualizar cada 30 segundos
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
+  // Animación de los tiburones
   useEffect(() => {
-    if (!data.length) return; // No iniciar animación si no hay datos
+    if (!data.length) return;
 
     const speed = 0.002;
 
@@ -69,10 +79,8 @@ export default function SharkMap() {
           const id = Number(idStr);
           const shark = prev[id];
           const positions = data.filter((t) => t.ID === id);
-
           if (!positions.length) continue;
 
-          // Validar que el siguiente índice exista
           const next = positions[shark.nextIndex % positions.length];
           if (!next) continue;
 
