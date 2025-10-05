@@ -7,7 +7,7 @@ import L from "leaflet";
 import Adopt from "@/app/map/Adopt"
 
 const sharkIcon = new L.Icon({
-  iconUrl: "/shark.svg",
+  iconUrl: "/shark.png",
   iconSize: [30, 30],
 });
 
@@ -26,6 +26,7 @@ type SharkPosition = {
 };
 
 export default function SharkMap() {
+  const [weekOffset, setWeekOffset] = useState(0);
   const [data, setData] = useState<Tiburon[]>([]);
   const [sharks, setSharks] = useState<Record<number, SharkPosition>>({});
   const animationRef = useRef<number | null>(null);
@@ -112,6 +113,25 @@ export default function SharkMap() {
 
   return (
     <div className="h-screen w-full">
+      {/* Slider */}
+        <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-xl shadow">
+          <label className="block mb-2 font-semibold">Semana: {weekOffset}</label>
+          <input
+            type="range"
+            min={-4}
+            max={4}
+            value={weekOffset}
+            onChange={(e) => setWeekOffset(Number(e.target.value))}
+            className="w-48"
+          />
+          <div className="text-sm text-gray-600 mt-2">
+            {weekOffset < 0
+              ? `Mostrando semana ${Math.abs(weekOffset)} en el pasado`
+              : weekOffset > 0
+              ? `Predicción para semana ${weekOffset}`
+              : "Ubicación actual"}
+          </div>
+      </div>
       <MapContainer
         center={centro}
         zoom={6}
