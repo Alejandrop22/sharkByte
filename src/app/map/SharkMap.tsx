@@ -1,117 +1,108 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+import "leaflet-rotatedmarker"; // Importa el plugin
+import { useState, useEffect } from "react";
 import L from "leaflet";
-import Adopt from "@/app/map/Adopt"
 
 const sharkIcon = new L.Icon({
-  iconUrl: "/shark.svg",
-  iconSize: [30, 30],
+  iconUrl: "/shark.png",
+  iconSize: [30, 45],
 });
 
-type Tiburon = {
+type SharkTimeline = {
   ID: number;
-  lat: number;
-  lon: number;
-  datetime: string;
-  code: string;
+  positions: { lat: number; lon: number; week: number }[];
 };
 
-type SharkPosition = {
+const dummyTimeline: SharkTimeline[] = [
+  {
+    ID: 1,
+    positions: Array.from({ length: 9 }, (_, i) => ({
+      lat: 23.5 + i * 0.1,
+      lon: -90 + i * 0.1,
+      week: i - 4,
+    })),
+  },
+  {
+    ID: 2,
+    positions: Array.from({ length: 9 }, (_, i) => ({
+      lat: 24 + i * 0.05,
+      lon: -91 + i * 0.05,
+      week: i - 4,
+    })),
+  },
+];
+
+// Función para calcular el ángulo entre dos puntos
+function getAngle(from: [number, number], to: [number, number]): number {
+  const dy = to[0] - from[0];
+  const dx = to[1] - from[1];
+  const theta = Math.atan2(dy, dx);
+  return (theta * 180) / Math.PI;
+}
+
+// Componente para renderizar el marcador rotado
+function RotatedSharkMarker({
+  lat,
+  lon,
+  angle,
+  id,
+  week,
+}: {
   lat: number;
   lon: number;
-  nextIndex: number;
-};
-
-export default function SharkMap() {
-  const [data, setData] = useState<Tiburon[]>([]);
-  const [sharks, setSharks] = useState<Record<number, SharkPosition>>({});
-  const animationRef = useRef<number | null>(null);
-
-  const [sharkNames, setSharkNames] = useState<Record<number, string>>({});
-
-  const handleNameSet = (id: number, name: string) => {
-    setSharkNames((prev) => ({ ...prev, [id]: name }));
-  };
-
+  angle: number;
+  id: number;
+  week: number;
+}) {
+  const map = useMap();
 
   useEffect(() => {
-    fetch("/tibu.json")
-      .then((res) => res.json())
-      .then((json: Tiburon[]) => {
-        setData(json);
+    const marker = L.marker([lat, lon], {
+      icon: sharkIcon,
+      rotationAngle: angle,
+      rotationOrigin: "center",
+    }).addTo(map);
 
-        // Inicializar posiciones solo si hay datos
-        const uniqueIDs = Array.from(new Set(json.map((t) => t.ID)));
-        const initialPositions: Record<number, SharkPosition> = {};
-        uniqueIDs.forEach((id) => {
-          const first = json.find((t) => t.ID === id);
-          if (first) {
-            initialPositions[id] = { lat: first.lat, lon: first.lon, nextIndex: 1 };
-          }
-        });
-        setSharks(initialPositions);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (!data.length) return; // No iniciar animación si no hay datos
-
-    const speed = 0.002;
-
-    const animate = () => {
-      setSharks((prev) => {
-        const newPositions: Record<number, SharkPosition> = {};
-
-        for (const idStr in prev) {
-          const id = Number(idStr);
-          const shark = prev[id];
-          const positions = data.filter((t) => t.ID === id);
-
-          if (!positions.length) continue;
-
-          // Validar que el siguiente índice exista
-          const next = positions[shark.nextIndex % positions.length];
-          if (!next) continue;
-
-          const { lat, lon } = shark;
-          const dLat = next.lat - lat;
-          const dLon = next.lon - lon;
-
-          if (Math.abs(dLat) < 0.0001 && Math.abs(dLon) < 0.0001) {
-            newPositions[id] = {
-              lat: next.lat,
-              lon: next.lon,
-              nextIndex: (shark.nextIndex + 1) % positions.length,
-            };
-          } else {
-            newPositions[id] = {
-              lat: lat + dLat * speed,
-              lon: lon + dLon * speed,
-              nextIndex: shark.nextIndex,
-            };
-          }
-        }
-
-        return newPositions;
-      });
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
+    marker.bindPopup(`Tiburón #${id}<br>Semana ${week}`);
 
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      map.removeLayer(marker);
     };
-  }, [data]);
+  }, [lat, lon, angle, id, week, map]);
 
+  return null;
+}
+
+export default function SharkMap() {
+  const [weekOffset, setWeekOffset] = useState(0);
   const centro: [number, number] = [23.5, -90.0];
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-screen w-full relative">
+      {/* Slider temporal */}
+      <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-xl shadow">
+        <label className="block mb-2 font-semibold">Semana: {weekOffset}</label>
+        <input
+          type="range"
+          min={-4}
+          max={4}
+          value={weekOffset}
+          onChange={(e) => setWeekOffset(Number(e.target.value))}
+          className="w-48"
+        />
+        <div className="text-sm text-gray-600 mt-2">
+          {weekOffset < 0
+            ? `Mostrando semana ${Math.abs(weekOffset)} en el pasado`
+            : weekOffset > 0
+            ? `Predicción para semana ${weekOffset}`
+            : "Ubicación actual"}
+        </div>
+      </div>
+
+      {/* Mapa */}
       <MapContainer
         center={centro}
         zoom={6}
@@ -126,23 +117,28 @@ export default function SharkMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {Object.keys(sharks).map((idStr) => {
-          const id = Number(idStr);
-          const s = sharks[id];
-          if (!s) return null;
+        {/* Marcadores rotados */}
+        {dummyTimeline.map((shark) => {
+          const current = shark.positions.find((p) => p.week === weekOffset);
+          if (!current) return null;
+
+          const prev = shark.positions.find((p) => p.week === weekOffset - 1);
+          const next = shark.positions.find((p) => p.week === weekOffset + 1);
+
+          const from = prev ?? next;
+          const angle = from
+            ? getAngle([from.lat, from.lon], [current.lat, current.lon])
+            : 0;
 
           return (
-            <Marker key={id} position={[s.lat, s.lon]} icon={sharkIcon}>
-              <Popup>
-                <Adopt
-                  id={id}
-                  lat={s.lat}
-                  lon={s.lon}
-                  existingName={sharkNames[id]}
-                  onNameSet={handleNameSet}
-                />
-              </Popup>
-            </Marker>
+            <RotatedSharkMarker
+              key={`${shark.ID}-${weekOffset}`}
+              lat={current.lat}
+              lon={current.lon}
+              angle={angle}
+              id={shark.ID}
+              week={weekOffset}
+            />
           );
         })}
       </MapContainer>
