@@ -11,6 +11,7 @@ const sharkIcon = new L.Icon({
   iconSize: [30, 30],
 });
 
+
 type Tiburon = {
   ID: number;
   lat: number;
