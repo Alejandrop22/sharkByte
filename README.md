@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SharkMap – Interactive Shark Tracker
 
-## Getting Started
+SharkMap is an interactive web application built with React, Next.js, and React Leaflet that visualizes shark movements in the Gulf of Mexico. It allows users to track the positions of tagged sharks in real time and explore historical or predictive data based on week offsets.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* Interactive Map
+Displays shark locations on a zoomable and scrollable Leaflet map with custom shark icons.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* Week-Based Offset
+Users can scroll or use the range slider to view shark positions in different weeks, allowing visualization of past, present, and predicted movements.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* Custom Shark Naming
+Users can assign custom names to sharks for personalized tracking.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* Dynamic Data Handling
+Fetches and processes shark tracking data from a JSON source (seguimiento_filtrado.json), ensuring proper filtering and sorting by timestamps.
 
-## Learn More
+* Smooth Animations
+Sharks move smoothly between data points using a frame-by-frame animation system.
 
-To learn more about Next.js, take a look at the following resources:
+## Technologies Used
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+* React – Frontend framework for building the user interface.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+* Next.js – Handles server-side rendering and routing.
 
-## Deploy on Vercel
+* React Leaflet – Integrates Leaflet maps into React components.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+* Leaflet – Interactive map library.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* TypeScript – Strong typing for better maintainability and error reduction.

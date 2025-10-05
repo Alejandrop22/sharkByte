@@ -41,7 +41,6 @@ export default function SharkMap() {
     setSharkNames((prev) => ({ ...prev, [id]: name }));
   };
 
-  // --- Load & clean data ---
   useEffect(() => {
     fetch("/seguimiento_filtrado.json")
       .then((res) => res.json())
@@ -49,7 +48,6 @@ export default function SharkMap() {
         const cleaned: Tiburon[] = json
           .filter(
             (t) =>
-              // soporta claves 'Lat'/'Lon' con mayúsculas y ignora entradas inválidas
               (typeof t.Lat === "number" || typeof t.lat === "number") &&
               (typeof t.Lon === "number" || typeof t.lon === "number")
           )
@@ -61,12 +59,10 @@ export default function SharkMap() {
             code: String(t.code ?? ""),
           }));
 
-        // opcional: asegurar orden por datetime globalmente
         cleaned.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
 
         setData(cleaned);
 
-        // Inicializar posiciones por ID (primer registro de cada tiburón)
         const uniqueIDs = Array.from(new Set(cleaned.map((t) => t.ID)));
         const initialPositions: Record<number, SharkPosition> = {};
         uniqueIDs.forEach((id) => {
@@ -82,7 +78,6 @@ export default function SharkMap() {
       });
   }, []);
 
-  // --- Animate movement frame-by-frame (sin tocar) ---
   useEffect(() => {
     if (!data.length) return;
     const speed = 0.002;
@@ -132,27 +127,22 @@ export default function SharkMap() {
     };
   }, [data]);
 
-  // --- Map scroll -> weekOffset (seguro contra división por 0) ---
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      // use documentElement para páginas con altura consistente
       const scrollMax = document.documentElement.scrollHeight - window.innerHeight;
       const ratio = scrollMax > 0 ? scrollY / scrollMax : 0;
-      // calcular offset entero y clamp entre MIN_OFFSET y MAX_OFFSET
       const raw = Math.round(ratio * (MAX_OFFSET - MIN_OFFSET)) + MIN_OFFSET;
       const offset = Math.min(MAX_OFFSET, Math.max(0, raw));
       setWeekOffset(offset);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    // inicializa una vez (por si no hay scroll)
     handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // --- Cuando weekOffset cambia: posicionar cada tiburón a un índice "a futuro" proporcional ---
   useEffect(() => {
     if (!data.length) return;
 
@@ -167,7 +157,6 @@ export default function SharkMap() {
 
         if (!positions.length) return;
 
-        // mapeo proporcional: MIN_OFFSET -> índice 0, MAX_OFFSET -> último índice
         const ratio = (weekOffset - MIN_OFFSET) / (MAX_OFFSET - MIN_OFFSET);
         const idx = Math.round(ratio * (positions.length - 1));
         const clampedIdx = Math.min(Math.max(0, idx), positions.length - 1);
@@ -176,7 +165,6 @@ export default function SharkMap() {
         newPositions[id] = {
           lat: target.lat,
           lon: target.lon,
-          // nextIndex será el siguiente punto del track (para que la animación continúe)
           nextIndex: Math.min(clampedIdx + 1, positions.length - 1),
         };
       });
