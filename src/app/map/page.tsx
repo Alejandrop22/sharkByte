@@ -3,7 +3,7 @@
 import React from 'react'
 import dynamic from "next/dynamic";
 
-const MapaTiburones = dynamic(() => import("../map/MapaTiburones"), {
+const MapaTiburones = dynamic(() => import("./SharkMap"), {
   ssr: false,
 });
 

@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
+import Adopt from "@/app/map/Adopt"
 
 const sharkIcon = new L.Icon({
   iconUrl: "/shark.svg",
@@ -24,10 +25,17 @@ type SharkPosition = {
   nextIndex: number;
 };
 
-export default function MapaTiburones() {
+export default function SharkMap() {
   const [data, setData] = useState<Tiburon[]>([]);
   const [sharks, setSharks] = useState<Record<number, SharkPosition>>({});
   const animationRef = useRef<number | null>(null);
+
+  const [sharkNames, setSharkNames] = useState<Record<number, string>>({});
+
+  const handleNameSet = (id: number, name: string) => {
+    setSharkNames((prev) => ({ ...prev, [id]: name }));
+  };
+
 
   useEffect(() => {
     fetch("/tibu.json")
@@ -121,11 +129,18 @@ export default function MapaTiburones() {
         {Object.keys(sharks).map((idStr) => {
           const id = Number(idStr);
           const s = sharks[id];
-          if (!s) return null; // Validar existencia
+          if (!s) return null;
+
           return (
             <Marker key={id} position={[s.lat, s.lon]} icon={sharkIcon}>
               <Popup>
-              🦈 Tiburón #{id}
+                <Adopt
+                  id={id}
+                  lat={s.lat}
+                  lon={s.lon}
+                  existingName={sharkNames[id]}
+                  onNameSet={handleNameSet}
+                />
               </Popup>
             </Marker>
           );
