@@ -33,8 +33,8 @@ const centro: [number, number] = [23.5, -90.0];
     <div className="h-screen w-full">
       <MapContainer
         center={centro}
-        zoom={5}
-        minZoom={4}
+        zoom={6}
+        minZoom={5}
         maxZoom={8}
         className="h-full w-full rounded-2xl shadow-lg"
         style={{ border: "2px solid #ccc" }}
