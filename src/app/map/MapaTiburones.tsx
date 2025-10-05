@@ -8,7 +8,7 @@ import L from "leaflet";
 // Ícono personalizado
 const sharkIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/616/616408.png",
-  iconSize: [30, 30],
+  iconSize: [20, 20],
 });
 
 type Tiburon = {
@@ -32,17 +32,14 @@ const centro: [number, number] = [23.5, -90.0];
   return (
     <div className="h-screen w-full">
       <MapContainer
-        center={[23.5, -90.0]}       // Centro del Golfo de México
-        zoom={5}                     // Zoom fijo
-        minZoom={5}                  // Misma que zoom
-        maxZoom={5}                  // Misma que zoom
-        scrollWheelZoom={false}      // Desactiva zoom con scroll
-        doubleClickZoom={false}      // Desactiva zoom con doble click
-        dragging={true}              // Permite mover dentro del área
-        maxBounds={[[18, -98], [30.5, -78]]}  // Limites del mapa
-        maxBoundsViscosity={1.0}     // No permite salirse
+        center={centro}
+        zoom={5}
+        minZoom={4}
+        maxZoom={8}
         className="h-full w-full rounded-2xl shadow-lg"
         style={{ border: "2px solid #ccc" }}
+        maxBounds={[[18, -98], [30.5, -78]]} // [SW, NE] = lat/lon
+        maxBoundsViscosity={1.0} // fuerza total, no permite salirse
       >
         {/* Capa base del mapa */}
         <TileLayer
