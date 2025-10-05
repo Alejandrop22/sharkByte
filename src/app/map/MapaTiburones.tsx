@@ -2,33 +2,106 @@
 
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 
-// Ícono personalizado
 const sharkIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/616/616408.png",
-  iconSize: [20, 20],
+  iconUrl: "/shark.svg",
+  iconSize: [30, 30],
 });
 
 type Tiburon = {
+  ID: number;
   lat: number;
   lon: number;
-  id?: string;
+  datetime: string;
+  code: string;
+};
+
+type SharkPosition = {
+  lat: number;
+  lon: number;
+  nextIndex: number;
 };
 
 export default function MapaTiburones() {
   const [data, setData] = useState<Tiburon[]>([]);
+  const [sharks, setSharks] = useState<Record<number, SharkPosition>>({});
+  const animationRef = useRef<number | null>(null);
 
-  // === Cargar datos del CSV (convertido a JSON) ===
   useEffect(() => {
     fetch("/tibu.json")
       .then((res) => res.json())
-      .then((json) => setData(json));
+      .then((json: Tiburon[]) => {
+        setData(json);
+
+        // Inicializar posiciones solo si hay datos
+        const uniqueIDs = Array.from(new Set(json.map((t) => t.ID)));
+        const initialPositions: Record<number, SharkPosition> = {};
+        uniqueIDs.forEach((id) => {
+          const first = json.find((t) => t.ID === id);
+          if (first) {
+            initialPositions[id] = { lat: first.lat, lon: first.lon, nextIndex: 1 };
+          }
+        });
+        setSharks(initialPositions);
+      });
   }, []);
 
-  // Coordenadas del centro del Golfo de México
-const centro: [number, number] = [23.5, -90.0];
+  useEffect(() => {
+    if (!data.length) return; // No iniciar animación si no hay datos
+
+    const speed = 0.002;
+
+    const animate = () => {
+      setSharks((prev) => {
+        const newPositions: Record<number, SharkPosition> = {};
+
+        for (const idStr in prev) {
+          const id = Number(idStr);
+          const shark = prev[id];
+          const positions = data.filter((t) => t.ID === id);
+
+          if (!positions.length) continue;
+
+          // Validar que el siguiente índice exista
+          const next = positions[shark.nextIndex % positions.length];
+          if (!next) continue;
+
+          const { lat, lon } = shark;
+          const dLat = next.lat - lat;
+          const dLon = next.lon - lon;
+
+          if (Math.abs(dLat) < 0.0001 && Math.abs(dLon) < 0.0001) {
+            newPositions[id] = {
+              lat: next.lat,
+              lon: next.lon,
+              nextIndex: (shark.nextIndex + 1) % positions.length,
+            };
+          } else {
+            newPositions[id] = {
+              lat: lat + dLat * speed,
+              lon: lon + dLon * speed,
+              nextIndex: shark.nextIndex,
+            };
+          }
+        }
+
+        return newPositions;
+      });
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [data]);
+
+  const centro: [number, number] = [23.5, -90.0];
+
   return (
     <div className="h-screen w-full">
       <MapContainer
@@ -37,26 +110,26 @@ const centro: [number, number] = [23.5, -90.0];
         minZoom={5}
         maxZoom={8}
         className="h-full w-full rounded-2xl shadow-lg"
-        style={{ border: "2px solid #ccc" }}
-        maxBounds={[[18, -98], [30.5, -78]]} // [SW, NE] = lat/lon
-        maxBoundsViscosity={1.0} // fuerza total, no permite salirse
+        maxBounds={[[18, -98], [30.5, -78]]}
+        maxBoundsViscosity={1.0}
       >
-        {/* Capa base del mapa */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Marcadores de tiburones */}
-        {data.map((t, i) => (
-          <Marker key={i} position={[t.lat, t.lon]} icon={sharkIcon}>
-            <Popup>
-              🦈 Tiburón #{t.id ?? i + 1}
-              <br />
-              Lat: {t.lat.toFixed(2)}, Lon: {t.lon.toFixed(2)}
-            </Popup>
-          </Marker>
-        ))}
+        {Object.keys(sharks).map((idStr) => {
+          const id = Number(idStr);
+          const s = sharks[id];
+          if (!s) return null; // Validar existencia
+          return (
+            <Marker key={id} position={[s.lat, s.lon]} icon={sharkIcon}>
+              <Popup>
+              🦈 Tiburón #{id}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );
