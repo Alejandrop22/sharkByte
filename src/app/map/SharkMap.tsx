@@ -122,51 +122,73 @@ export default function SharkMap() {
   const handleNameSet = (id: number, name: string) => {
     setSharkNames((prev) => ({ ...prev, [id]: name }));
   };
+// --- Obtener predicciones del backend ---
+type Prediction = {
+  id: number;
+  lat_next: number;
+  lon_next: number;
+  sst_next?: number;
+  chl_next?: number;
+};
 
-  // --- Load & clean data ---
-  useEffect(() => {
-    fetch("/seguimiento_filtrado.json")
-      .then((res) => res.json())
-      .then((json: any[]) => {
-        const cleaned: Tiburon[] = json
-          .filter(
-            (t) =>
-              (typeof t.Lat === "number" || typeof t.lat === "number") &&
-              (typeof t.Lon === "number" || typeof t.lon === "number")
-          )
-          .map((t) => ({
-            ID: Number(t.ID),
-            lat: Number(t.Lat ?? t.lat),
-            lon: Number(t.Lon ?? t.lon),
-            datetime: String(t.datetime),
-            code: String(t.code ?? ""),
-          }));
+useEffect(() => {
+  if (!data.length) return;
 
-        cleaned.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+  async function getPredictions() {
+    try {
+      const predictions: Prediction[] = [];
 
-        setData(cleaned);
+      // Supongamos que solo quieres predecir para los primeros 3 tiburones
+      const uniqueIDs = Array.from(new Set(data.map((t) => t.ID))).slice(0, 3);
 
-        // Inicializar posiciones
-        const uniqueIDs = Array.from(new Set(cleaned.map((t) => t.ID)));
-        const initialPositions: Record<number, SharkPosition> = {};
-        uniqueIDs.forEach((id) => {
-          const positions = cleaned.filter((t) => t.ID === id);
-          if (positions.length) {
-            initialPositions[id] = {
-              lat: positions[0].lat,
-              lon: positions[0].lon,
-              nextIndex: 1
-            };
-            setSharkAnimals((prev) => ({
-              ...prev,
-              [id]: getRandomAnimals()
-            }));
-          }
+      for (const id of uniqueIDs) {
+        const lastPosition = data
+          .filter((t) => t.ID === id)
+          .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())[0];
+
+        if (!lastPosition) continue;
+
+        const res = await fetch("http://127.0.0.1:8000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            lat: lastPosition.lat,
+            lon: lastPosition.lon,
+            hour: new Date().getHours(),
+            month: new Date().getMonth() + 1,
+            sst: 25.0,
+            chl: 0.8,
+          }),
         });
-        setSharks(initialPositions);
-      })
-      .catch((err) => console.error("Error cargando JSON:", err));
-  }, []);
+
+        const json = await res.json();
+        predictions.push(json);
+      }
+
+      console.log("Predicciones recibidas:", predictions);
+
+      // Actualizar posiciones en el mapa con predicciones
+      setSharks((prev) => {
+        const updated = { ...prev };
+        predictions.forEach((p) => {
+          if (!p.lat_next || !p.lon_next) return;
+          updated[p.id] = {
+            lat: p.lat_next,
+            lon: p.lon_next,
+            nextIndex: 0,
+          };
+        });
+        return updated;
+      });
+    } catch (err) {
+      console.error("Error obteniendo predicciones:", err);
+    }
+  }
+
+  getPredictions();
+}, [data]);
+
 
   // --- Animate sharks ---
   useEffect(() => {
