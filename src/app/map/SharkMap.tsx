@@ -85,7 +85,9 @@ type Tiburon = {
   lat: number;
   lon: number;
   datetime: string;
-  code: string;
+  sst: number;
+  chl: number;
+
 };
 
 type SharkPosition = {
@@ -94,7 +96,7 @@ type SharkPosition = {
   nextIndex: number;
 };
 
-const MIN_OFFSET = -2;
+const MIN_OFFSET = 0;
 const MAX_OFFSET = 8;
 
 export default function SharkMap() {
@@ -132,23 +134,34 @@ type Prediction = {
 };
 
 useEffect(() => {
+  // ⚠️ Solo de prueba: simula ubicaciones iniciales de tiburones
+  setData([
+    { ID: 159826, lat: 27.5, lon: -90.0, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+  ]);
+}, []);
+
+
+useEffect(() => {
   if (!data.length) return;
 
   async function getPredictions() {
     try {
       const predictions: Prediction[] = [];
 
-      // Supongamos que solo quieres predecir para los primeros 3 tiburones
+      // IDs únicos de tiburones
       const uniqueIDs = Array.from(new Set(data.map((t) => t.ID))).slice(0, 3);
 
       for (const id of uniqueIDs) {
-        const lastPosition = data
-          .filter((t) => t.ID === id)
-          .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())[0];
+        // Última posición conocida: si el tiburón ya tiene posición animada, usa esa
+        const lastPosition = sharks[id]
+          ? { lat: sharks[id].lat, lon: sharks[id].lon }
+          : data
+              .filter((t) => t.ID === id)
+              .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())[0];
 
         if (!lastPosition) continue;
 
-        const res = await fetch("http://127.0.0.1:8000/predict", {
+        const res = await fetch("http://localhost:8000/predict", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -164,11 +177,24 @@ useEffect(() => {
 
         const json = await res.json();
         predictions.push(json);
+
+        // Actualizar data para que la próxima predicción use la nueva posición
+        setData((prev) => [
+          ...prev,
+          {
+            ID: json.id,
+            lat: json.lat_next,
+            lon: json.lon_next,
+            datetime: new Date().toISOString(),
+            sst: json.sst_next ?? 25,
+            chl: json.chl_next ?? 0.8,
+          },
+        ]);
       }
 
       console.log("Predicciones recibidas:", predictions);
 
-      // Actualizar posiciones en el mapa con predicciones
+      // Actualizar posiciones en el mapa
       setSharks((prev) => {
         const updated = { ...prev };
         predictions.forEach((p) => {
@@ -186,8 +212,11 @@ useEffect(() => {
     }
   }
 
-  getPredictions();
-}, [data]);
+  // ⚠️ Llamar cada 5 segundos, por ejemplo, para simular movimiento continuo
+  const interval = setInterval(getPredictions, 5000);
+  return () => clearInterval(interval);
+}, [data, sharks]);
+
 
 
   // --- Animate sharks ---
@@ -298,7 +327,7 @@ useEffect(() => {
         <label className="block mb-2 font-semibold text-black">Week: {weekOffset}</label>
         <input
           type="range"
-          min={-1}
+          min={0}
           max={7}
           value={weekOffset}
           onChange={(e) => {
