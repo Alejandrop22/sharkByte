@@ -137,6 +137,18 @@ useEffect(() => {
   // ⚠️ Solo de prueba: simula ubicaciones iniciales de tiburones
   setData([
     { ID: 159826, lat: 27.5, lon: -90.0, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    { ID: 120880, lat: 26.8, lon: -89.2, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    // { ID: 132414, lat: 25.9, lon: -88.5, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    { ID: 129957, lat: 28.2, lon: -91.1, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    // { ID: 169320, lat: 29.0, lon: -89.5, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+// { ID: 132416, lat: 24.5, lon: -87.0, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    { ID: 146598, lat: 26.0, lon: -86.5, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    { ID: 151420, lat: 28.5, lon: -92.0, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    { ID: 160314, lat: 27.0, lon: -88.0, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+    // { ID: 120885, lat: 25.5, lon: -85.5, datetime: new Date().toISOString(), sst: 25.3, chl: .8 },
+
+
+    
   ]);
 }, []);
 
@@ -149,7 +161,7 @@ useEffect(() => {
       const predictions: Prediction[] = [];
 
       // IDs únicos de tiburones
-      const uniqueIDs = Array.from(new Set(data.map((t) => t.ID))).slice(0, 3);
+      const uniqueIDs = Array.from(new Set(data.map((t) => t.ID))).slice(0, 8);
 
       for (const id of uniqueIDs) {
         // Última posición conocida: si el tiburón ya tiene posición animada, usa esa
